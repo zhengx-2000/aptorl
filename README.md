@@ -1,24 +1,9 @@
 # aptrol
 Automatic Program Tuning and Optimisation by Reinforced Learning
 
-## Github Basics
+## Project title
+Program Optimisation Using Reinforcement Learning
 
-- https://guides.github.com/activities/hello-world/
-- https://guides.github.com/introduction/flow/
-
-## Note by Matthew
-
-AWS Server: 18.117.180.62 (updated 3rd Aug 2021)
-
-Please go to this link and request your QMUL Github account here:  
-https://docs.hpc.qmul.ac.uk/intro/github-only-account  
-More info: https://docs.hpc.qmul.ac.uk/github/  
-I will discuss more when we meet tomorrow.  
-
-Configurations need on Ubuntu
-
-    git config user.name "Chris Wong"
-    git config user.email "xxx@qmul.ac.uk"
-    git config credential.helper store
-    git config --global core.editor "vim"
-    git config core.editor "vim"
+## Introduction
+This project is developed from JP Research Project 2020/2021 **”Can AI Choose the Right Data Types for us?” Reinforcement Learning for Automatic Software Tuning** and is the guaduate project in Beijing University of Posts and Telecommunications.
+The original project is on Github Enterprise for Queen Marry University of London, and this Github page is just a copy.
