@@ -50,13 +50,14 @@ class ProgOptEnv:
         There is any syntax error.
         It fails any test cases.
         Episode length is greater than 100. (since the maximum line number is 100)
-        The runtime is 150% time more than a baseline.
+        The runtime is 200% time more than the baseline.
     """
 
     def __init__(self):
         self.line_pos = 0
         self.modified_list = np.array([])
-        self.goal_actions = np.array([3, 6, 7])  # defined in Register_copy.c
+        # self.goal_actions = np.array([3, 6, 7])  # defined in Register_copy.c
+        self.goal_actions = None
         # self.max_n_error = 0
         # self.max_n_failed_cases = 0
         self.runtime_threshold = 2.0  # 200% than the baseline

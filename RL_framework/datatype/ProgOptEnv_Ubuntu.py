@@ -28,13 +28,17 @@ class ProgOptEnv:
         Type: ndarray()
         Num     Observation               Min                     Max
         0       self.line_pos             0                       99
-        1       self.modified_list        Numpy array (stored sorted modification records)
+        1       self.modified_list        Numpy array (stored sorted modification records,
+                                            in format (action - 1) * max_line + line
 
     Actions:
         Type: List(2)
         Num   Action
         0     Skip the change 
-        1     Take the change
+        1     Change int into float
+        2     Change int into double
+        3     Change int into long
+        4     Change int into short
 
     Reward:
         There is no certain goal, so the reward is the proportion of improvement of runtime (from -150% to 100%)
@@ -56,21 +60,21 @@ class ProgOptEnv:
     def __init__(self):
         self.line_pos = 0
         self.modified_list = np.array([])
-        self.goal_actions = np.array([3, 6, 7])  # defined in Register_copy.c
+        self.goal_actions = None
         # self.max_n_error = 0
         # self.max_n_failed_cases = 0
         self.runtime_threshold = 2.0  # 200% than the baseline
-        self.base_file = 'Register_B'
-        self.base_file_copied = 'Register_copy'
-        self.output_file = 'Register_O'
+        self.base_file = 'Datatype_B'
+        self.base_file_copied = 'Datatype_c'
+        self.output_file = 'Datatype_O'
         self.output_file_copied = None
         shutil.copyfile(self.base_file_copied + '.c', self.base_file + '.c')
         self.max_line_pos = line_count(self.base_file + '.c')
-        self.compile_state = self.compile_source('gcc ' + self.base_file + '.c -o ' + self.base_file)
-        self.runtime_baseline = self.run_and_time(self.base_file + ' > out0')
+        self.compile_state = self.compile_source('gcc ' + self.base_file + '.c -o ' + self.base_file + ' -lm')
+        self.runtime_baseline = self.run_and_time('./' + self.base_file + ' > out0')
         self.runtime_proportional = 1
 
-        self.action_space = ['0', '1']
+        self.action_space = ['0', '1', '2', '3', '4']
         self.n_actions = len(self.action_space)
 
         self.state = None
@@ -79,8 +83,8 @@ class ProgOptEnv:
         self.line_pos = 0
         self.modified_list = np.array([])
         self.runtime_proportional = 1
-        self.base_file = 'Register_B'
-        self.output_file = 'Register_O'
+        self.base_file = 'Datatype_B'
+        self.output_file = 'Datatype_O'
         self.output_file_copied = None
         self.state = np.append(self.line_pos, self.modified_list)
         shutil.copyfile(self.base_file_copied + '.c', self.base_file + '.c')
@@ -94,7 +98,7 @@ class ProgOptEnv:
         t = time.perf_counter()  # start time
         x = subprocess.call(cmd, shell=True)  # just run with all outputs to stdout
         t = time.perf_counter() - t  # end time
-        assert x == 0
+        # assert x == 0  # Here x can be not 0, in reality, x represents the process number
         return t
 
     def digitize(self, p_time):
@@ -137,20 +141,26 @@ class ProgOptEnv:
                 self.line_pos = 0
             done = False
             reward = 0.0
-
-        if action == 1:
+        else:
             # modify the program source code
             # print("modify source code")
             self.output_file_copied = self.output_file
-            self.output_file = self.output_file + '_' + str(self.line_pos)
-            alter_result = alter(self.base_file + '.c', self.output_file + '.c', self.line_pos, 'int', 'register int')
-
+            self.output_file = self.output_file + '_' + str(action) + 'at' + str(self.line_pos + 1)
+            alter_result = None
+            if action == 1:
+                alter_result = alter(self.base_file + '.c', self.output_file + '.c', self.line_pos, 'int', 'float')
+            elif action == 2:
+                alter_result = alter(self.base_file + '.c', self.output_file + '.c', self.line_pos, 'int', 'double')
+            elif action == 3:
+                alter_result = alter(self.base_file + '.c', self.output_file + '.c', self.line_pos, 'int', 'long')
+            elif action == 4:
+                alter_result = alter(self.base_file + '.c', self.output_file + '.c', self.line_pos, 'int', 'short')
             if alter_result == 0:
                 # compile -> retrieve syntax error(s)
-                n_error = self.compile_source('gcc ' + self.output_file + '.c -o ' + self.output_file)
+                n_error = self.compile_source('gcc ' + self.output_file + '.c -o ' + self.output_file + ' -lm')
                 # execute -> measure runtime
                 if n_error == 0:  # compile successful
-                    runtime = self.run_and_time(self.output_file + ' > out1')  # ignore stdout and print
+                    runtime = self.run_and_time('./' + self.output_file + ' > out1')  # ignore stdout and print
                     # result to out1
                     assert runtime > 0
                     print(f"updated runtime = {runtime}")
@@ -173,9 +183,10 @@ class ProgOptEnv:
                         else:
                             # Success!
                             done = False
-                            # shutil.copyfile(self.output_file + '.c', self.base_file + '.c')  # change files
                             self.base_file = self.output_file  # change files
-                            self.modified_list = np.append(self.modified_list, self.line_pos)
+                            modification_record = (action - 1) * self.max_line_pos + self.line_pos  # (action - 1) *
+                            # max_line + line
+                            self.modified_list = np.append(self.modified_list, modification_record)
                             self.modified_list.sort()
                             reward = 1 - self.runtime_proportional  # (base_time(1) - new_time) / base_time(1)
                             if np.array_equal(self.modified_list, self.goal_actions):  # win
